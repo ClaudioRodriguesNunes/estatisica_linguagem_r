@@ -1,0 +1,143 @@
+---
+title: "Probabilidades e distribuições"
+subtitle: "Lista avaliativa 2 -- Probabilidade e Estatística"
+author: "Claudio Rodrigues Nunes"
+date: "20/06/25"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Respiração
+
+Compreendi que cada molécula pode ser vista como uma "tentativa" com pequena probabilidade p de ser uma dessas moléculas especiais, onde o volume inspirado é muito grande porém p é muito pequeno.
+
+### Dados Fornecidos
+
+```{r dados}
+moleculas_por_litro <- 2.5e22
+volume_inspirado <- 0.5 # litros
+inspiracoes_napoleao <- 5.5e7
+volume_atmosfera <- 4e21 # litros
+```
+
+### Calculos Intermediários
+
+```{r c_intermediarios}
+# Somei as moléculas inspiradas por Napoleão
+total_moleculas_inspiradas <- moleculas_por_litro * volume_inspirado * inspiracoes_napoleao
+
+# Calculei a fração do volume da atmosfera que Napoleão inspirou
+frac_atmosfera_inspirada <- (volume_inspirado * inspiracoes_napoleao) / volume_atmosfera
+
+# Achando a probabilidade de uma molécula já ter passado pelos pulmões de Napoleão
+p <- total_moleculas_inspiradas / (moleculas_por_litro * volume_atmosfera)
+
+# Calculei o número total de moléculas no volume inspirado (meio litro)
+n <- moleculas_por_litro * volume_inspirado
+
+# Parâmetro lambda da Poisson
+lambda <- n * p
+```
+
+### 1. Qual a distribuição de probabilidade de X?
+A variável X pode ser aproximada por uma distribuição de Poisson com parâmetro Lambda = n * p
+
+```{r lambda_respira}
+lambda
+```
+
+```{r grafico_01}
+library(ggplot2)
+
+p0 <- dpois(0, lambda)
+p_mais_0 <- 1 - p0
+df_zero <- data.frame(
+  evento = c("X = 0", "X > 0"),
+  prob = c(p0, p_mais_0)
+)
+
+ggplot(df_zero, aes(x = evento, y = prob, fill = evento)) +
+  geom_col() +
+  geom_text(aes(label = scales::percent(prob, accuracy = 0.0001)), vjust = -0.5) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(title = "Probabilidade de X ser zero ou maior que zero",
+       y = "Probabilidade",
+       x = "") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r grafico_02}
+library(ggplot2)
+
+k_values <- 0:20
+prob_values <- dpois(k_values, lambda)
+df_scatter <- data.frame(k = k_values, prob = prob_values)
+
+ggplot(df_scatter, aes(x = k, y = prob)) +
+  geom_point(color = "blue", size = 3) +
+  geom_line(color = "blue") +
+  labs(title = "Scatter plot da distribuição de Poisson para X",
+       x = "Número de moléculas X",
+       y = "Probabilidade P(X = k)") +
+  theme_minimal()
+```
+
+
+### 2. Qual a probabilidade P(X>1.000.000)?
+
+```{r prob_respira}
+prob_maior_1_milhao <- 1 - ppois(1e6, lambda)
+prob_maior_1_milhao
+```
+
+### 3. Qual o valor esperado de X?
+O valor esperado da distribuição de Poisson é exatamente λ:
+
+```{r lambda_x}
+lambda
+```
+
+# Doença Rara
+
+O problema dado pelo professor citou somente a probabilidade da pessoa estar doente dado um exame.
+Aqui eu apliquei o teorema de Bayes.
+Eu supos que a sensibilidade é de 100% e falso positivo de 1%.
+
+### Dados Fornecidos
+
+```{r dados_raro}
+p_doente_pos1 <- 0.00497       # P(doente | exame positivo 1)
+sensibilidade <- 1             # P(positivo | doente) = 100%
+falso_positivo <- 0.01         # P(positivo | não doente) = 1%
+```
+
+### Calculei a probabilidade após o segundo exame positivo, conforme pedido pelo professor
+Aplicando o Teorema de Bayes novamente, assumindo exames independentes:
+
+```{r 2_exame_positivo}
+p_D <- p_doente_pos1  # Probabilidade de doente após 1 exame positivo
+p_doente_pos2 <- (p_D * sensibilidade) / (p_D * sensibilidade + (1 - p_D) * falso_positivo)
+p_doente_pos2
+```
+
+```{r grafico_03}
+df_bayes <- data.frame(
+  exame = c("Após 1 exame positivo", "Após 2 exames positivos"),
+  probabilidade = c(p_doente_pos1, p_doente_pos2)
+)
+
+ggplot(df_bayes, aes(x = exame, y = probabilidade)) +
+  geom_col(fill = c("orange", "forestgreen")) +
+  ylim(0, 1) +
+  labs(title = "Probabilidade de estar doente após exames positivos",
+       x = "Situação",
+       y = "Probabilidade") +
+  theme_minimal()
+```
